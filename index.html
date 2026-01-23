@@ -27,9 +27,9 @@
         const RANGE_MAX = 100;
         const GameStatus = { IDLE: 'IDLE', PLAYING: 'PLAYING', WON: 'WON', LOST: 'LOST' };
 
-        // API 키 설정 (테스트용)
-        const API_KEY = window.process?.env?.NEXT_PUBLIC_API_KEY; 
-
+        // API 키 설정 (테스트용)        
+        const API_KEY = "AIzaSyCSZrCfLjFSRvTWF6CnO-PjSRFhdI2bIOc";
+        
         const App = () => {
             const [targetNumber, setTargetNumber] = useState(0);
             const [currentGuess, setCurrentGuess] = useState('');
