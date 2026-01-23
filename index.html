@@ -51,42 +51,39 @@
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
             const getAIFeedback = async (guess, target, history, hint) => {
-                try {
-                    const genAI = new window.GoogleGenerativeAI(API_KEY);
-                    const model = genAI.getGenerativeModel({model: "models/gemini-1.5-flash",    
-    generationConfig: {
-        temperature: 1.2, // 0.0 ~ 2.0 사이 (높을수록 창의적)
-        topP: 0.95,
-        responseMimeType: "application/json"
-    }});
-                    
-                    const prompt = `
-당신은 '숫자 맞추기 게임'의 빌런 마스터입니다. 
-당신은 사용자가 숫자를 맞추지 못하도록 방해하고, 틀릴 때마다 아주 비꼬는 말투로 약을 올립니다.
+    try {
+        const genAI = new window.GoogleGenerativeAI(API_KEY);
+        
+        // 모델명을 'models/' 경로를 포함하여 명확히 지정합니다.
+        const model = genAI.getGenerativeModel({ 
+            model: "models/gemini-1.5-flash", 
+            generationConfig: {
+                temperature: 1.2,
+                topP: 0.95,
+                responseMimeType: "application/json"
+            }
+        });
 
-[현재 상황]
-- 사용자의 입력값: ${guess}
-- 실제 정답: ${target}
-- 힌트 방향: ${hint} (UP이면 정답이 더 높음, DOWN이면 더 낮음)
-- 지금까지 시도한 숫자들: [${history.join(', ')}]
-
-[지시 사항]
-1. 정답을 직접적으로 말하지 마세요.
-2. 사용자의 시도가 형편없다는 점을 강조하며 비꼬는 투로 한 문장만 말하세요.
-3. 절대 '더 높은 숫자예요' 같은 친절한 말은 하지 마세요. 대신 "하늘 높은 줄 모르고 치솟아야겠네요?" 같은 비유를 쓰세요.
-4. 반드시 아래의 JSON 형식만 출력하세요. 다른 설명은 금지합니다.
-{"message": "여기에 비꼬는 멘트", "emoji": "여기에 열받는 이모티콘"}
-`;
-                    
-                    const result = await model.generateContent(prompt);
-                    const responseText = result.response.text();
-                    const jsonStr = responseText.substring(responseText.indexOf('{'), responseText.lastIndexOf('}') + 1);
-                    return JSON.parse(jsonStr);
-                } catch (error) {
-                    console.error("AI Error:", error);
-                    return { message: hint === 'UP' ? "더 높게!" : "더 낮게!", emoji: "💡" };
-                }
-            };
+        const prompt = `당신은 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했습니다. 정답은 ${target}이고 힌트는 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "...", "emoji": "..."}으로만 답하세요.`;
+        
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        
+        // JSON 추출 로직 (responseText에 마크다운이 섞여도 안전하게 파싱)
+        const startIdx = responseText.indexOf('{');
+        const endIdx = responseText.lastIndexOf('}') + 1;
+        const jsonStr = responseText.substring(startIdx, endIdx);
+        
+        return JSON.parse(jsonStr);
+    } catch (error) {
+        console.error("AI Error:", error);
+        // 에러 발생 시 사용자에게 보여줄 기본 힌트
+        return { 
+            message: hint === 'UP' ? "더 높게 불러보시지!" : hint === 'DOWN' ? "그렇게 높아서야 되겠어? 낮춰!" : "오, 정답이야!", 
+            emoji: "💡" 
+        };
+    }
+};
 
             const handleGuess = async (e) => {
                 e?.preventDefault();
