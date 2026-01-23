@@ -52,52 +52,40 @@
 
          const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [수정] v1 정식 버전 엔드포인트를 사용합니다.
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // [필독] 주소는 v1beta로, 모델명은 gemini-1.5-flash로 정확히 맞춥니다.
+        // 주소 끝에 :generateContent 가 붙었는지 꼭 확인하세요.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        const promptText = `당신은 아주 무례한 숫자 맞추기 게임 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 힌트는 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 이 JSON 형식으로만 답하세요: {"message": "대사", "emoji": "이모티콘"}`;
+        const promptText = `당신은 아주 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 상황: ${hint}. 한 문장으로 비꼬는 농담을 하세요. 형식: {"message": "대사", "emoji": "이모티콘"}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
-                    // [중요] v1 구조에서는 parts 배열 안에 객체로 전달해야 합니다.
                     parts: [{ text: promptText }]
-                }],
-                generationConfig: {
-                    temperature: 1.0,
-                    topP: 0.95
-                    // 에러를 유발했던 responseMimeType은 안전을 위해 제거했습니다.
-                }
+                }]
+                // 400 에러를 피하기 위해 generationConfig를 아예 뺐습니다.
             })
         });
 
         if (!response.ok) {
             const errorBody = await response.json();
-            console.error("서버 응답 에러:", errorBody);
+            console.error("최종 에러 상세:", errorBody);
             throw new Error(`API 오류: ${response.status}`);
         }
 
         const data = await response.json();
-        
-        // API 응답 데이터 추출
         const responseText = data.candidates[0].content.parts[0].text;
         
-        // [안전장치] AI가 텍스트를 섞어 보낼 경우를 대비해 JSON 부분만 골라냅니다.
+        // JSON 파싱 안전장치
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
-        const jsonStr = responseText.substring(startIdx, endIdx);
-        
-        return JSON.parse(jsonStr);
+        return JSON.parse(responseText.substring(startIdx, endIdx));
 
     } catch (error) {
-        console.error("AI Error 최종:", error);
-        // 에러가 나도 게임은 계속되어야 하므로 기본 메시지 출력
-        return { 
-            message: hint === 'UP' ? "더 높게 불러보시지!" : "그렇게 높아서야 되겠어? 낮춰!", 
-            emoji: "💡" 
-        };
+        console.error("AI Error:", error);
+        return { message: hint === 'UP' ? "더 높게!" : "더 낮게!", emoji: "💡" };
     }
 };
 
