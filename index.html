@@ -78,17 +78,22 @@
         const data = await response.json();
         const responseText = data.candidates[0].content.parts[0].text;
         
-        // JSON 파싱 안전장치
+        // JSON 파싱 안전장치 (마크다운 기호 제거)
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
-        return JSON.parse(responseText.substring(startIdx, endIdx));
+        const jsonStr = responseText.substring(startIdx, endIdx);
+        
+        return JSON.parse(jsonStr);
 
     } catch (error) {
         console.error("AI Error:", error);
-        return { message: hint === 'UP' ? "더 높게!" : "더 낮게!", emoji: "💡" };
+        // 에러가 나도 게임은 계속되도록 기본 메시지 반환
+        return { 
+            message: hint === 'UP' ? "더 높게 불러보시지!" : "그렇게 높아서야 되겠어? 낮춰!", 
+            emoji: "💡" 
+        };
     }
 };
-
             const handleGuess = async (e) => {
                 e?.preventDefault();
                 const guess = parseInt(currentGuess);
