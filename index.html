@@ -50,48 +50,36 @@
 
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
-         const getAIFeedback = async (guess, target, history, hint) => {
+        const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [필독] 주소는 v1beta로, 모델명은 gemini-1.5-flash로 정확히 맞춥니다.
-        // 주소 끝에 :generateContent 가 붙었는지 꼭 확인하세요.
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // [수정] 모델명 뒤에 -latest를 붙여서 구글이 가장 최신 모델을 강제로 찾게 만듭니다.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
 
-        const promptText = `당신은 아주 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 상황: ${hint}. 한 문장으로 비꼬는 농담을 하세요. 형식: {"message": "대사", "emoji": "이모티콘"}`;
+        const promptText = `당신은 숫자 맞추기 게임의 무례한 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 상황: ${hint}. 한 문장으로 비꼬는 농담을 하세요. 형식: {"message": "대사", "emoji": "이모티콘"}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: promptText }]
-                }]
-                // 400 에러를 피하기 위해 generationConfig를 아예 뺐습니다.
+                contents: [{ parts: [{ text: promptText }] }]
             })
         });
 
         if (!response.ok) {
             const errorBody = await response.json();
-            console.error("최종 에러 상세:", errorBody);
+            console.error("에러 발생:", errorBody);
             throw new Error(`API 오류: ${response.status}`);
         }
 
         const data = await response.json();
         const responseText = data.candidates[0].content.parts[0].text;
-        
-        // JSON 파싱 안전장치 (마크다운 기호 제거)
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
-        const jsonStr = responseText.substring(startIdx, endIdx);
-        
-        return JSON.parse(jsonStr);
+        return JSON.parse(responseText.substring(startIdx, endIdx));
 
     } catch (error) {
         console.error("AI Error:", error);
-        // 에러가 나도 게임은 계속되도록 기본 메시지 반환
-        return { 
-            message: hint === 'UP' ? "더 높게 불러보시지!" : "그렇게 높아서야 되겠어? 낮춰!", 
-            emoji: "💡" 
-        };
+        return { message: hint === 'UP' ? "더 높게!" : "더 낮게!", emoji: "💡" };
     }
 };
             const handleGuess = async (e) => {
