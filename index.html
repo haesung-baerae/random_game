@@ -51,12 +51,12 @@
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
        const getAIFeedback = async (guess, target, history, hint) => {
-    try {
-        try {
-        // API_KEY가 제대로 로드되었는지 확인하는 방어 코드 (개발 시 유용)
-        if (!API_KEY) {
-            throw new Error("API 키를 찾을 수 없습니다. .env 파일이나 Vercel 설정을 확인하세요.");
-        }
+        // 1. 함수 시작 시 바로 API 키 존재 여부 확인
+            if (!API_KEY) {
+                console.error("환경변수 VITE_GEMINI_API_KEY가 설정되지 않았습니다.");
+                return { message: "설정 오류! 관리자에게 문의하세요.", emoji: "⚙️" };
+            }
+        try{
         // [핵심] 목록 20번에 있던 정식 명칭을 사용합니다.
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
 
