@@ -52,45 +52,47 @@
 
          const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // v1beta 주소를 사용합니다.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        // 프롬프트 구성
-        const promptText = `당신은 숫자 맞추기 게임의 무례한 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 현재 상황은 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.`;
+        const promptText = `당신은 아주 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 힌트는 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 이 JSON 형식으로만 답하세요: {"message": "대사", "emoji": "이모티콘"}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{
-                    // v1 구조에서는 명시적으로 role을 부여하는 것이 안정적입니다.
-                    role: "user",
                     parts: [{ text: promptText }]
                 }],
                 generationConfig: {
                     temperature: 1.0,
-                    topP: 0.95,
-                    // v1에서 JSON 모드를 활성화하는 정석 방법입니다.
-                    responseMimeType: "application/json"
+                    topP: 0.95
+                    // 에러의 주범인 responseMimeType 필드를 완전히 제거했습니다.
                 }
             })
         });
 
         if (!response.ok) {
-            const errorBody = await response.json();
-            console.error("상세 에러 내역:", errorBody); // 여기서 400 에러의 구체적 이유가 찍힙니다.
-            throw new Error(`서버 응답 오류: ${response.status}`);
+            const errorText = await response.text();
+            console.error("상세 에러:", errorText);
+            throw new Error(`API 오류: ${response.status}`);
         }
 
         const data = await response.json();
-        
-        // 데이터 추출 경로 확인 (v1 응답 구조 대응)
         const responseText = data.candidates[0].content.parts[0].text;
-        return JSON.parse(responseText);
+        
+        // AI가 마크다운(```json ... ```)을 포함할 수 있으므로 중괄호 사이의 텍스트만 추출합니다.
+        const startIdx = responseText.indexOf('{');
+        const endIdx = responseText.lastIndexOf('}') + 1;
+        if (startIdx === -1) throw new Error("JSON 형식을 찾을 수 없습니다.");
+        
+        const jsonStr = responseText.substring(startIdx, endIdx);
+        return JSON.parse(jsonStr);
 
     } catch (error) {
-        console.error("AI Error 최종:", error);
+        console.error("AI Error:", error);
         return { 
-            message: hint === 'UP' ? "더 높게 불러보시지!" : "그렇게 높아서야 되겠어? 낮춰!", 
+            message: hint === 'UP' ? "더 높게 불러보시지! 실력이 그게 뭐야?" : "너무 높잖아! 좀 낮춰봐.", 
             emoji: "💡" 
         };
     }
