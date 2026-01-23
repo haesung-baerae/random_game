@@ -28,7 +28,7 @@
         const GameStatus = { IDLE: 'IDLE', PLAYING: 'PLAYING', WON: 'WON', LOST: 'LOST' };
 
         // API 키 설정 (테스트용)
-        const API_KEY = "AIzaSyCSZrCfLjFSRvTWF6CnO-PjSRFhdI2bIOc"; 
+        const API_KEY = window.process?.env?.NEXT_PUBLIC_API_KEY; 
 
         const App = () => {
             const [targetNumber, setTargetNumber] = useState(0);
