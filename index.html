@@ -52,8 +52,8 @@
 
        const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [필독] 목록 4번에 있는 gemini-2.0-flash 모델을 사용합니다.        
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite-preview-02-05:generateContent?key=${API_KEY}`;
+        // [필독] 목록 4번에 있는 gemini-2.0-flash 모델을 사용합니다.                
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
         const promptText = `당신은 아주 무례하고 킹받게 하는 게임 마스터입니다. 사용자가 입력한 숫자: ${guess}, 정답: ${target}, 힌트: ${hint}. 아주 짧고 무례한 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 대답하세요.`;
 
         const response = await fetch(url, {
