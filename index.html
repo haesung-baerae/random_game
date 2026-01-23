@@ -1,31 +1,148 @@
-
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini Mind Reader</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
-        background: radial-gradient(circle at top right, #f8fafc, #e2e8f0);
-        min-height: 100vh;
-      }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background: radial-gradient(circle at top right, #f8fafc, #e2e8f0); min-height: 100vh; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
-  }
-}
-</script>
 </head>
 <body>
     <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef } = React;
+
+        // 게임 설정 상수
+        const MAX_GUESSES = 10;
+        const RANGE_MAX = 100;
+        const GameStatus = { IDLE: 'IDLE', PLAYING: 'PLAYING', WON: 'WON', LOST: 'LOST' };
+
+        const App = () => {
+            const [targetNumber, setTargetNumber] = useState(0);
+            const [currentGuess, setCurrentGuess] = useState('');
+            const [history, setHistory] = useState([]);
+            const [status, setStatus] = useState(GameStatus.IDLE);
+            const [aiFeedback, setAiFeedback] = useState({ message: "자, 제가 생각하는 1에서 100 사이의 숫자를 맞춰보세요!", emoji: "🔮" });
+            const [isLoading, setIsLoading] = useState(false);
+            const inputRef = useRef(null);
+
+            const startNewGame = useCallback(() => {
+                const random = Math.floor(Math.random() * RANGE_MAX) + 1;
+                setTargetNumber(random);
+                setHistory([]);
+                setCurrentGuess('');
+                setStatus(GameStatus.PLAYING);
+                setAiFeedback({ message: "자, 제가 생각하는 1에서 100 사이의 숫자를 맞춰보세요!", emoji: "🔮" });
+                setTimeout(() => inputRef.current?.focus(), 100);
+            }, []);
+
+            useEffect(() => { startNewGame(); }, [startNewGame]);
+
+            const handleGuess = async (e) => {
+                e?.preventDefault();
+                const guess = parseInt(currentGuess);
+                if (isNaN(guess) || guess < 1 || guess > RANGE_MAX || status !== GameStatus.PLAYING) return;
+                
+                if (history.some(h => h.value === guess)) {
+                    setAiFeedback({ message: "이미 입력했던 숫자예요!", emoji: "⚠️" });
+                    return;
+                }
+
+                setIsLoading(true);
+                let hint = 'CORRECT';
+                if (guess < targetNumber) hint = 'UP';
+                else if (guess > targetNumber) hint = 'DOWN';
+
+                const newRecord = { value: guess, hint, timestamp: Date.now() };
+                const updatedHistory = [newRecord, ...history];
+                setHistory(updatedHistory);
+                setCurrentGuess('');
+
+                if (hint === 'CORRECT') {
+                    setStatus(GameStatus.WON);
+                    setAiFeedback({ message: "천재신가요? 정답입니다!", emoji: "🎉" });
+                } else if (updatedHistory.length >= MAX_GUESSES) {
+                    setStatus(GameStatus.LOST);
+                    setAiFeedback({ message: "아쉽네요, 제가 이겼습니다!", emoji: "😎" });
+                } else {
+                    setAiFeedback({ message: hint === 'UP' ? "더 높은 숫자를 불러보세요!" : "더 낮은 숫자일 것 같네요.", emoji: "🤔" });
+                }
+                
+                setIsLoading(false);
+                inputRef.current?.focus();
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
+                        <div className="bg-indigo-600 p-6 text-white text-center relative">
+                            <h1 className="text-2xl font-bold tracking-tight">Gemini Mind Reader</h1>
+                            <div className="absolute top-4 right-4 bg-indigo-500 rounded-full px-3 py-1 text-xs font-semibold">
+                                {history.length} / {MAX_GUESSES}
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-slate-50 border-b border-slate-100">
+                            <div className="flex items-start space-x-4">
+                                <div className="flex-shrink-0 w-12 h-12 bg-white rounded-2xl shadow-sm flex items-center justify-center text-2xl border border-slate-200">
+                                    {aiFeedback?.emoji || "🤖"}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-200 text-slate-700 text-sm min-h-[50px] flex items-center">
+                                        {isLoading ? "생각 중..." : aiFeedback?.message}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            {status === GameStatus.PLAYING ? (
+                                <form onSubmit={handleGuess} className="space-y-4">
+                                    <input
+                                        ref={inputRef}
+                                        type="number"
+                                        value={currentGuess}
+                                        onChange={(e) => setCurrentGuess(e.target.value)}
+                                        className="w-full text-4xl font-bold text-center py-4 rounded-2xl border-2 border-slate-200 focus:border-indigo-500 focus:outline-none"
+                                        placeholder="1-100"
+                                    />
+                                    <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-2xl shadow-lg">
+                                        확인하기
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="text-center space-y-4">
+                                    <div className="text-6xl">{status === GameStatus.WON ? '🏆' : '💀'}</div>
+                                    <h2 className="text-3xl font-bold">{status === GameStatus.WON ? '정답입니다!' : '게임 오버'}</h2>
+                                    <p>정답은 <span className="font-bold text-indigo-600">{targetNumber}</span> 이었습니다.</p>
+                                    <button onClick={startNewGame} className="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl">다시 시작하기</button>
+                                </div>
+                            )}
+
+                            {history.length > 0 && (
+                                <div className="grid grid-cols-5 gap-2">
+                                    {history.slice().reverse().map((record) => (
+                                        <div key={record.timestamp} className="flex flex-col items-center p-2 rounded-xl border bg-white text-sm font-bold">
+                                            {record.value} <span>{record.hint === 'UP' ? '▲' : record.hint === 'DOWN' ? '▼' : '★'}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
 </body>
 </html>
