@@ -50,35 +50,40 @@
 
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
-          const getAIFeedback = async (guess, target, history, hint) => {
+         const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // 수정 포인트: v1beta 대신 정식 버전인 v1 주소를 사용합니다.
-        // 또한 모델명 식별이 가장 확실한 gemini-1.5-flash-latest를 시도합니다.
         const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
 
-        const prompt = `당신은 숫자 맞추기 게임의 무례한 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 현재 상황은 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.`;
+        // 프롬프트 구성
+        const promptText = `당신은 숫자 맞추기 게임의 무례한 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 현재 상황은 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
+                contents: [{
+                    // v1 구조에서는 명시적으로 role을 부여하는 것이 안정적입니다.
+                    role: "user",
+                    parts: [{ text: promptText }]
+                }],
                 generationConfig: {
                     temperature: 1.0,
-                    // JSON 모드를 명시적으로 지원하는 설정입니다.
+                    topP: 0.95,
+                    // v1에서 JSON 모드를 활성화하는 정석 방법입니다.
                     responseMimeType: "application/json"
                 }
             })
         });
 
-        // 만약 v1에서도 404가 난다면 v1beta로 주소를 바꾸되 모델명을 "models/gemini-1.5-flash"로 풀 경로를 적어야 합니다.
         if (!response.ok) {
-            const errorData = await response.json();
-            console.error("상세 에러 내용:", errorData);
-            throw new Error(`API 호출 실패: ${response.status}`);
+            const errorBody = await response.json();
+            console.error("상세 에러 내역:", errorBody); // 여기서 400 에러의 구체적 이유가 찍힙니다.
+            throw new Error(`서버 응답 오류: ${response.status}`);
         }
 
         const data = await response.json();
+        
+        // 데이터 추출 경로 확인 (v1 응답 구조 대응)
         const responseText = data.candidates[0].content.parts[0].text;
         return JSON.parse(responseText);
 
