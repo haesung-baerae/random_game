@@ -53,10 +53,11 @@
             const getAIFeedback = async (guess, target, history, hint) => {
                 try {
                     const genAI = new window.GoogleGenerativeAI(API_KEY);
-                    const model = genAI.getGenerativeModel({model: "gemini-1.5-flash",    
+                    const model = genAI.getGenerativeModel({model: "gemini-1.5-flash-latest",    
     generationConfig: {
         temperature: 1.2, // 0.0 ~ 2.0 사이 (높을수록 창의적)
         topP: 0.95,
+        responseMimeType: "application/json"
     }});
                     
                     const prompt = `
