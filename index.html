@@ -52,36 +52,38 @@
 
             const getAIFeedback = async (guess, target, history, hint) => {
     try {
+        // v1beta 대신 안정적인 v1을 시도하도록 모델을 생성합니다.
         const genAI = new window.GoogleGenerativeAI(API_KEY);
         
-        // 모델명을 'models/' 경로를 포함하여 명확히 지정합니다.
+        // 중요: 모델명 앞에 반드시 'models/'가 붙어야 404 에러를 피할 수 있습니다.
         const model = genAI.getGenerativeModel({ 
-            model: "models/gemini-1.5-flash-latest", 
+            model: "models/gemini-1.5-flash",
             generationConfig: {
-                temperature: 1.2,
+                temperature: 1.0,
                 topP: 0.95,
                 responseMimeType: "application/json"
             }
         });
 
-        const prompt = `당신은 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했습니다. 정답은 ${target}이고 힌트는 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "...", "emoji": "..."}으로만 답하세요.`;
-        
+        const prompt = `당신은 아주 무례한 숫자 맞추기 게임 마스터입니다. 사용자가 입력한 숫자: ${guess}, 정답: ${target}, 이전 기록: [${history.join(', ')}]. 정답이 더 크면 UP, 작으면 DOWN입니다. 현재 상황은 ${hint}입니다. 사용자에게 아주 짧고 킹받게 한국어로 한 문장만 말하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 대답하세요.`;
+
+        // API 호출
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         
-        // JSON 추출 로직 (responseText에 마크다운이 섞여도 안전하게 파싱)
+        // JSON 파싱 (안전한 추출)
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
-        const jsonStr = responseText.substring(startIdx, endIdx);
+        if (startIdx === -1) throw new Error("JSON not found");
         
+        const jsonStr = responseText.substring(startIdx, endIdx);
         return JSON.parse(jsonStr);
+
     } catch (error) {
-        console.error("AI Error:", error);
-        // 에러 발생 시 사용자에게 보여줄 기본 힌트
-        return { 
-            message: hint === 'UP' ? "더 높게 불러보시지!" : hint === 'DOWN' ? "그렇게 높아서야 되겠어? 낮춰!" : "오, 정답이야!", 
-            emoji: "💡" 
-        };
+        console.error("AI Error 상세:", error);
+        // 에러가 나도 게임은 계속되어야 하므로 기본 피드백 반환
+        const fallbackMsg = hint === 'UP' ? "더 높게 불러보시지! 실력이 그게 뭐야?" : hint === 'DOWN' ? "너무 높잖아! 좀 낮춰봐." : "정답이야, 운이 좋았군.";
+        return { message: fallbackMsg, emoji: "🙄" };
     }
 };
 
