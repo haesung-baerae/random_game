@@ -52,36 +52,17 @@
 
         const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [필살기] gemini-1.5-flash-8b는 현재 가장 최신이며 접근성이 좋은 모델입니다.
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${API_KEY}`;
-
-        const promptText = `당신은 무례한 게임 마스터입니다. 정답:${target}, 입력:${guess}, 상황:${hint}. 비꼬는 농담을 JSON {"message": "...", "emoji": "..."} 형식으로 한 문장만 하세요.`;
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: promptText }] }]
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            // 만약 여기서도 404가 나면 콘솔에 모델 목록을 출력하도록 유도합니다.
-            console.error("이래도 안된다면 구글 서버 문제:", errorData);
-            throw new Error(`에러 코드: ${response.status}`);
-        }
-
+        // 현재 내 키로 접근 가능한 모델 목록을 가져오는 주소입니다.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`;
+        const response = await fetch(url);
         const data = await response.json();
-        const responseText = data.candidates[0].content.parts[0].text;
         
-        const startIdx = responseText.indexOf('{');
-        const endIdx = responseText.lastIndexOf('}') + 1;
-        return JSON.parse(responseText.substring(startIdx, endIdx));
-
+        console.log("사용 가능한 모델 목록:", data);
+        
+        return { message: "콘솔창(F12)에 찍힌 모델 목록을 확인해주세요!", emoji: "🔍" };
     } catch (error) {
-        console.error("AI Error:", error);
-        return { message: "구글 서버가 멍청해서 대답을 못하네!", emoji: "💩" };
+        console.error("목록 가져오기 실패:", error);
+        return { message: "목록조차 가져올 수 없네요...", emoji: "🚫" };
     }
 };
             const handleGuess = async (e) => {
