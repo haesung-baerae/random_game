@@ -53,7 +53,12 @@
             const getAIFeedback = async (guess, target, history, hint) => {
                 try {
                     const genAI = new window.GoogleGenerativeAI(API_KEY);
-                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    const model = genAI.getGenerativeModel({model: "gemini-1.5-flash",
+    // temperature를 높이면 AI가 더 창의적이고 예상치 못한(킹받는) 답변을 합니다.
+    generationConfig: {
+        temperature: 1.2, // 0.0 ~ 2.0 사이 (높을수록 창의적)
+        topP: 0.95,
+    }});
                     
                     const prompt = `당신은 아주 무례하지만 유머러스한 숫자 맞추기 게임 마스터입니다. 사용자가 입력한 숫자: ${guess}. 정답: ${target}. 힌트: ${hint}. 이전 기록: [${history.join(', ')}]. 위 상황에 맞춰서 사용자에게 아주 짧고, 킹받게 한국어로 말하세요. 이모티콘도 하나 꼭 포함하세요. JSON 형식으로만 대답하세요: {"message": "대사", "emoji": "이모티콘"}`;
                     
