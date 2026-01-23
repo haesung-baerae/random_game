@@ -52,11 +52,10 @@
 
         const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [수정] 주소 형식을 v1beta로 고정하고 모델 경로를 명확히 합니다.
-        // 무료 티어에서 가장 안정적으로 작동하는 엔드포인트입니다.
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        // [수정] 모델명을 gemini-pro로 변경하여 호환성을 확보합니다.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${API_KEY}`;
 
-        const promptText = `당신은 무례한 게임 마스터입니다. 사용자가 ${guess}를 입력했고 정답은 ${target}입니다. 힌트는 ${hint}입니다. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.`;
+        const promptText = `당신은 아주 무례한 게임 마스터입니다. 사용자가 입력한 숫자:${guess}, 정답:${target}, 상황:${hint}. 아주 짧고 킹받는 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "...", "emoji": "..."}으로만 답하세요.`;
 
         const response = await fetch(url, {
             method: 'POST',
@@ -68,25 +67,24 @@
             })
         });
 
-        // 만약 여기서 404가 난다면 모델명을 "gemini-pro"로만 바꿔보세요.
         if (!response.ok) {
             const errorBody = await response.json();
-            console.error("상세 에러 내용:", errorBody);
-            throw new Error(`에러 코드: ${response.status}`);
+            console.error("상세 에러 내역:", errorBody);
+            throw new Error(`API 오류: ${response.status}`);
         }
 
         const data = await response.json();
         const responseText = data.candidates[0].content.parts[0].text;
         
-        // JSON 추출 (마크다운 방지용)
+        // JSON 추출
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
         return JSON.parse(responseText.substring(startIdx, endIdx));
 
     } catch (error) {
-        console.error("AI Error:", error);
+        console.error("AI Error 최종:", error);
         return { 
-            message: hint === 'UP' ? "더 높게 불러보시지!" : "그렇게 높아서야 되겠어? 낮춰!", 
+            message: hint === 'UP' ? "더 높게 불러보시지!" : "너무 높잖아! 낮춰!", 
             emoji: "💡" 
         };
     }
