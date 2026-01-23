@@ -27,7 +27,7 @@
         const RANGE_MAX = 100;
         const GameStatus = { IDLE: 'IDLE', PLAYING: 'PLAYING', WON: 'WON', LOST: 'LOST' };
 
-        // API 키 설정
+        // API 키 설정 (테스트용)
         const API_KEY = "AIzaSyCSZrCfLjFSRvTWF6CnO-PjSRFhdI2bIOc"; 
 
         const App = () => {
@@ -52,7 +52,6 @@
 
             const getAIFeedback = async (guess, target, history, hint) => {
                 try {
-                    // 전역 변수 window.GoogleGenerativeAI를 사용합니다.
                     const genAI = new window.GoogleGenerativeAI(API_KEY);
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                     
@@ -118,4 +117,34 @@
                                 <form onSubmit={handleGuess} className="space-y-4">
                                     <input ref={inputRef} type="number" value={currentGuess} onChange={(e) => setCurrentGuess(e.target.value)}
                                         className="w-full text-4xl font-bold text-center py-4 rounded-2xl border-2 focus:border-indigo-500 outline-none" placeholder="1-100" />
-                                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-60
+                                    <button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform">
+                                        확인하기
+                                    </button>
+                                </form>
+                            ) : (
+                                <div className="text-center space-y-4">
+                                    <div className="text-6xl">{status === GameStatus.WON ? '🏆' : '💀'}</div>
+                                    <h2 className="text-3xl font-bold">{status === GameStatus.WON ? '승리!' : '패배'}</h2>
+                                    <p>정답: <span className="text-indigo-600 font-bold">{targetNumber}</span></p>
+                                    <button onClick={startNewGame} className="w-full bg-slate-800 text-white font-bold py-4 rounded-2xl">다시 하기</button>
+                                </div>
+                            )}
+                            
+                            <div className="grid grid-cols-5 gap-2">
+                                {history.slice().reverse().map(h => (
+                                    <div key={h.timestamp} className="text-center p-2 rounded-xl border bg-white text-xs font-bold">
+                                        {h.value} <span>{h.hint === 'UP' ? '▲' : h.hint === 'DOWN' ? '▼' : '★'}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
