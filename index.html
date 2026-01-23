@@ -52,42 +52,31 @@
 
        const getAIFeedback = async (guess, target, history, hint) => {
     try {
-        // [필독] 목록 4번에 있는 gemini-2.0-flash 모델을 사용합니다.                
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-        const promptText = `당신은 아주 무례하고 킹받게 하는 게임 마스터입니다. 사용자가 입력한 숫자: ${guess}, 정답: ${target}, 힌트: ${hint}. 아주 짧고 무례한 농담을 한국어로 한 문장만 하세요. 반드시 JSON 형식 {"message": "대사", "emoji": "이모티콘"}으로만 대답하세요.`;
+        // [핵심] 목록 20번에 있던 정식 명칭을 사용합니다.
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
 
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{
-                    parts: [{ text: promptText }]
-                }]
+                contents: [{ parts: [{ text: `당신은 무례한 마스터입니다. 정답:${target}, 입력:${guess}, 상황:${hint}. 비꼬는 농담을 JSON {"message": "...", "emoji": "..."} 형식으로 짧게 한 문장 하세요.` }] }]
             })
         });
 
         if (!response.ok) {
-            const errorBody = await response.json();
-            console.error("에러 내용:", errorBody);
-            throw new Error(`API 오류: ${response.status}`);
+            const errorData = await response.json();
+            console.error("상세 에러:", errorData);
+            throw new Error(`에러 코드: ${response.status}`);
         }
 
         const data = await response.json();
         const responseText = data.candidates[0].content.parts[0].text;
-        
-        // JSON 추출 로직 (마크다운 방지)
         const startIdx = responseText.indexOf('{');
         const endIdx = responseText.lastIndexOf('}') + 1;
-        const jsonStr = responseText.substring(startIdx, endIdx);
-        
-        return JSON.parse(jsonStr);
+        return JSON.parse(responseText.substring(startIdx, endIdx));
 
     } catch (error) {
-        console.error("AI Error:", error);
-        return { 
-            message: hint === 'UP' ? "더 높게 불러보라고!" : "너무 높잖아, 좀 낮춰!", 
-            emoji: "💡" 
-        };
+        return { message: "구글 서버랑 싸우는 중이에요. 잠시만요!", emoji: "🥊" };
     }
 };
             const handleGuess = async (e) => {
