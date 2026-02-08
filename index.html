@@ -51,10 +51,13 @@
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
             const getAIFeedback = async (guess, target, history, hint) => {
-                const API_KEY = import.meta.env.VITE_API_KEY; 
-                // 1. API 키 확인
+                // 환경에 맞게 API 키 가져오기
+                const API_KEY = typeof import.meta !== 'undefined'
+                    ? import.meta.env?.VITE_API_KEY
+                    : process.env.VITE_API_KEY || process.env.API_KEY;
+                
                 if (!API_KEY) {
-                    console.error("환경변수 VITE_GEMINI_API_KEY가 설정되지 않았습니다.");
+                    console.error("환경변수가 설정되지 않았습니다.");
                     return { message: "설정 오류! 관리자에게 문의하세요.", emoji: "⚙️" };
                 }
                 
