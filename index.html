@@ -51,6 +51,7 @@
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
             const getAIFeedback = async (guess, target, history, hint) => {
+                const API_KEY = import.meta.env.VITE_API_KEY; 
                 // 1. API 키 확인
                 if (!API_KEY) {
                     console.error("환경변수 VITE_GEMINI_API_KEY가 설정되지 않았습니다.");
