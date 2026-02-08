@@ -3,11 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AIResponse } from "../types";
 
 //const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-// 환경에 따라 자동으로 올바른 방식 선택
-const API_KEY = typeof import.meta !== 'undefined' 
-    ? import.meta.env?.VITE_API_KEY 
-    : process.env.VITE_API_KEY || process.env.API_KEY;
-
+const API_KEY =  import.meta.env.VITE_API_KEY;
 const ai = new GoogleGenAI({ apiKey: API_KEY || "" });
 
 export const getAIFeedback = async (
