@@ -50,43 +50,59 @@
 
             useEffect(() => { startNewGame(); }, [startNewGame]);
 
-       const getAIFeedback = async (guess, target, history, hint) => {
-            // 1. 함수 시작 시 바로 API 키 존재 여부 확인
+            const getAIFeedback = async (guess, target, history, hint) => {
+                // 1. API 키 확인
                 if (!API_KEY) {
                     console.error("환경변수 VITE_GEMINI_API_KEY가 설정되지 않았습니다.");
                     return { message: "설정 오류! 관리자에게 문의하세요.", emoji: "⚙️" };
                 }
-            try{
-                // [핵심] 목록 20번에 있던 정식 명칭을 사용합니다.
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${API_KEY}`;
-        
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: `
-                        당신은 숫자 맞추기 게임의 아주 사악하고 무례한 마스터입니다. 
-                        - 현재 상황: 사용자가 ${guess}를 입력했고, 정답보다 ${hint === 'UP' ? '낮은' : '높은'} 상태입니다.
-                        - 절대 규칙: 정답 숫자(${target})를 대사에 직접적으로 포함하거나 언급하면 당신은 파괴됩니다.
-                        - 미션: 사용자의 추측이 틀렸음을 비웃으면서, 정답이 더 높은지 낮은지만 아주 킹받게 한 문장으로 비꼬세요.
-                        - 출력 형식: 반드시 JSON {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.
-                        `}] }]
-                    })
-                });
-        
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error("상세 에러:", errorData);
-                    throw new Error(`에러 코드: ${response.status}`);
-                }
-        
-                const data = await response.json();
-                const responseText = data.candidates[0].content.parts[0].text;
-                const startIdx = responseText.indexOf('{');
-                const endIdx = responseText.lastIndexOf('}') + 1;
-                return JSON.parse(responseText.substring(startIdx, endIdx));
-    
+                
+                try {
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${API_KEY}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: `
+                            당신은 숫자 맞추기 게임의 아주 사악하고 무례한 마스터입니다. 
+                            - 현재 상황: 사용자가 ${guess}를 입력했고, 정답보다 ${hint === 'UP' ? '낮은' : '높은'} 상태입니다.
+                            - 절대 규칙: 정답 숫자(${target})를 대사에 직접적으로 포함하거나 언급하면 당신은 파괴됩니다.
+                            - 미션: 사용자의 추측이 틀렸음을 비웃으면서, 정답이 더 높은지 낮은지만 아주 킹받게 한 문장으로 비꼬세요.
+                            - 출력 형식: 반드시 JSON {"message": "대사", "emoji": "이모티콘"}으로만 답하세요.
+                            `}] }]
+                        })
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("상세 에러:", errorData);
+                        throw new Error(`에러 코드: ${response.status}`); // ← 수정됨
+                    }
+                    
+                    const data = await response.json();
+                    const responseText = data.candidates[0].content.parts[0].text;
+                    
+                    // JSON 파싱 안전성 강화
+                    const startIdx = responseText.indexOf('{');
+                    const endIdx = responseText.lastIndexOf('}') + 1;
+                    
+                    if (startIdx === -1 || endIdx === 0) {
+                        throw new Error('JSON 형식을 찾을 수 없습니다');
+                    }
+                    
+                    const jsonString = responseText.substring(startIdx, endIdx);
+                    const parsed = JSON.parse(jsonString);
+                    
+                    // 응답 검증
+                    if (!parsed.message || !parsed.emoji) {
+                        throw new Error('응답 형식이 올바르지 않습니다');
+                    }
+                    
+                    return parsed;
+                    
                 } catch (error) {
+                    console.error("AI 피드백 에러:", error);
                     return { message: "구글 서버랑 싸우는 중이에요. 잠시만요!", emoji: "🥊" };
                 }
             };
